@@ -7,8 +7,8 @@ __author__ = 'AZaynutdinov'
 from random import randint, sample
 from copy import deepcopy
 
-players = 2
-items = 3
+players = 3
+items = 4
 
 merit = [[randint(1,10) for it in range(items)] for pl in range(players)]
 
@@ -39,35 +39,51 @@ def change_items(A_side, B_side, A_side_item, B_side_item):
 inventory
 change_items(0, 0 , 0, 0)
 
-def all_moves(me, others):   # 0, [1]
+def all_moves(me, other):   # 0, 1
     """
     returns list of all possible moves for 'me'
     :param me: int
-    :param others: list of ints
+    :param others: int
     :return: list
     """
-    possibilities = []   # does nothing
+
     for my_index, my_item in enumerate(inventory[me]):
-        for person in others:
-            for others_index, others_item in enumerate(inventory[person]):
-                if my_item:
-                    if others_item:
-                        possibilities.append([me, person, my_index, others_index, change_items]) #at the moment only item exchange
-    return possibilities
+        if my_item:
+            for others_index, others_item in enumerate(inventory[other]):
+                if others_item:
+                    yield ([me, other], [my_index, others_index, change_items])
 
-def evaluate_state(state):
+
+def evaluate_state(state, who):
     new_state_merit = [sum([i*im for i,im in zip(sl,ml)]) for sl,ml in zip(state, merit)]
-    return make_decision(stage_merit, new_state_merit)
+    return make_decision(stage_merit, new_state_merit, who)
 
-def make_decision(old_state, new_state):
-    return (new_state[0] - old_state[0]) - (sum(new_state[1:]) - sum(old_state[1:]))/2   #returns score for state for sorting
+def make_decision(old_state, new_state, who):
+    g = range(players)
+    g.remove(who)
+    d_who_merit = new_state[who] - old_state[who]
+    d_others_merit = sum([new_state[p] - old_state[p] for p in g])/2
+    return  d_who_merit -  d_others_merit #returns score for state for sorting
 
 
-new_states = [move[-1](*move[0:-1]) for move in all_moves(0, [1]) if evaluate_state(move[-1](*move[0:-1])) > 0]
-sorted_new_states = sorted(new_states, key=evaluate_state)
+def player_turn(me, others):
+    result = []
+    g = range(others)
+    g.remove(me)
+    for othr_player in g:
+        for side, params in  all_moves(0, othr_player):
+            ns = params[-1](*(side + params[0:-1]))
+            if evaluate_state(ns, me) > 0:
+                print evaluate_state(ns, me)
+                result.append(ns)
+    return result
 
+me = 0
+new_states =  player_turn(me, players)
+sorted_new_states = sorted(new_states, key=lambda x: evaluate_state(x, me), reverse=True)
 
-
+for i in sorted_new_states:
+    print evaluate_state(i, me)
 
 
 #
