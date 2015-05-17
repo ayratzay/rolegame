@@ -6,6 +6,9 @@ __author__ = 'AZaynutdinov'
 
 from random import randint, sample
 from copy import deepcopy
+from math import exp
+from operator import itemgetter
+from random import uniform
 
 players = 3
 items = 4
@@ -17,13 +20,9 @@ inventory = [list(args) for args in zip(*_item_ownership)]
 stage_merit = [sum([i*m for i,m in zip(pi, pm)]) for pi,pm in zip(inventory, merit)]
 
 
-
-
-
 ########### evaluating game results ###############
 ########## Works only for NUMBER ONE Player #######
 ##################################################
-
 
 def change_items(A_side, B_side, A_side_item, B_side_item):
     new_state = deepcopy(inventory) # creating new list object # deepcopy works slow
@@ -36,66 +35,66 @@ def change_items(A_side, B_side, A_side_item, B_side_item):
             return new_state
     return new_state
 
-inventory
-change_items(0, 0 , 0, 0)
-
-def all_moves(me, other):   # 0, 1
-    """
-    returns list of all possible moves for 'me'
-    :param me: int
-    :param others: int
-    :return: list
-    """
-
+def all_moves(me, other):
     for my_index, my_item in enumerate(inventory[me]):
         if my_item:
             for others_index, others_item in enumerate(inventory[other]):
                 if others_item:
-                    yield ([me, other], [my_index, others_index, change_items])
+                    for func in [change_items]:
+                        yield ([me, other], [my_index, others_index, func])
+
+def eval_move(move):
+    s, p = move
+    new_state = p[-1](s[0], s[1], *p[:-1])
+    new_state_merit = [sum([i*im for i,im in zip(sl,ml)]) for sl,ml in zip(new_state, merit)]
+    return new_state_merit[s[0]] - stage_merit[s[0]]
+
+def sigmoid(num, max):
+    x = float(num)/max
+    left_shit = 0.5  #decrease to shit left
+    return 1/(1+exp(-6*(x-left_shit)))
+
+def eval_proposal(move):
+    s, p = move
+    d_utility_me = eval_move(move)
+    d_utility_other = eval_move([s[::-1], p[:-1][::-1]+[p[-1]]])
+    d_utility_other_max = max([eval_move(m) for pl in range(players) for m in all_moves(s[-1], pl) if s[-1] != pl])
+    utility = d_utility_me * sigmoid(d_utility_other, d_utility_other_max)
+    if utility < 0:
+        utility = 0
+    return (move, utility)
+
+def make_decision(ml):
+    rnd = uniform(0,sum([m[1] for m in ml]))
+    return [i for i in ml if i[1] > rnd][-1]
+##############FIRST EPOCH#################
+
+proposal_pool = []
+for p1 in range(players):
+    moves = sorted([eval_proposal(move) for p2 in range(players) if p1 != p2
+                  for move in all_moves(p1, p2) if eval_proposal(move)[1] > 0.5], key=itemgetter(1), reverse=True)
+    if len(moves):
+        proposal_pool.append(make_decision(moves))
 
 
-def evaluate_state(state, who):
-    new_state_merit = [sum([i*im for i,im in zip(sl,ml)]) for sl,ml in zip(state, merit)]
-    return make_decision(stage_merit, new_state_merit, who)
+##############SECOND EPOCH##############
 
-def make_decision(old_state, new_state, who):
-    g = range(players)
-    g.remove(who)
-    d_who_merit = new_state[who] - old_state[who]
-    d_others_merit = sum([new_state[p] - old_state[p] for p in g])/2
-    return  d_who_merit -  d_others_merit #returns score for state for sorting
+for pr in proposal_pool:
+    (s, m), p = pr
+    n_sm = eval_move([s[::-1]]+ [m[1::-1] +[ m[-1]]])
+    max_sm = max([eval_move(moves) for pl in range(players) for moves in all_moves(*[s[1]]+ [pl]) if s[-1] != pl])
 
+    n_sm * sigmoid(n_sm, max_sm)
+    #make decision if accept proposal or make own propposal
 
-def player_turn(me, others):
-    result = []
-    g = range(others)
-    g.remove(me)
-    for othr_player in g:
-        for side, params in  all_moves(0, othr_player):
-            ns = params[-1](*(side + params[0:-1]))
-            if evaluate_state(ns, me) > 0:
-                print evaluate_state(ns, me)
-                result.append(ns)
-    return result
-
-me = 0
-new_states =  player_turn(me, players)
-sorted_new_states = sorted(new_states, key=lambda x: evaluate_state(x, me), reverse=True)
-
-for i in sorted_new_states:
-    print evaluate_state(i, me)
-
-
-#
-# STATE OK
-# PLAYER 0 checks all possible moves OK
-# PLAYER 0 chooses best 3 moves for him OK
-# PLAYER 0 suggests his best deal to conterpart OK
-# conterpart decides if he accetps it or not   TODO
-# if accepts
-#     change
-#     next turn
-# else:
-#     make next valuable suggestion
-#
-
+#second_epoch:
+for player in all_players:
+    if purpose[1] == player:
+        if evaluate_purpose() == 'reject'
+            add_rejected_pool
+        if evaluate_purpose() == 'postponed'
+            add_postponed_pool
+        if evaluate_purpose() == 'accepted'
+            add_to_execute_pool
+#evaluation_epoch:
+make moves
