@@ -65,8 +65,9 @@ def eval_proposal(move):
     return (move, utility)
 
 def make_decision(ml):
-    rnd = uniform(0,sum([m[1] for m in ml]))
-    return [i for i in ml if i[1] > rnd][-1]
+    return True
+#    rnd = uniform(0,sum([m[1] for m in ml]))
+#    return [i for i in ml if i[1] >= rnd][-1]
 ##############FIRST EPOCH#################
 
 proposal_pool = []
@@ -81,11 +82,18 @@ for p1 in range(players):
 
 for pr in proposal_pool:
     (s, m), p = pr
+
     n_sm = eval_move([s[::-1]]+ [m[1::-1] +[ m[-1]]])
     max_sm = max([eval_move(moves) for pl in range(players) for moves in all_moves(*[s[1]]+ [pl]) if s[-1] != pl])
 
     n_sm * sigmoid(n_sm, max_sm)
+
+    [qq for qq in proposal_pool if qq[0][0][0] == s[1]]+[pr]
+    print make_decision([qq for qq in proposal_pool if qq[0][0][0] == s[1]] + [pr])
     #make decision if accept proposal or make own propposal
+
+
+
 
 #second_epoch:
 for player in all_players:
